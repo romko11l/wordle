@@ -1,0 +1,209 @@
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --hint: #787c85;
+  --tile-border: #d3d6da;
+  --tile-border-active: #878a8c;
+  --key-bg: #d3d6da;
+  --key-text: #1a1a1a;
+  --absent: #787c85;
+  --present: #c9b458;
+  --correct: #6aaa64;
+  --tile-filled-border: #878a8c;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  user-select: none;
+}
+
+#app {
+  width: 100%;
+  max-width: 500px;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) 8px env(safe-area-inset-bottom);
+}
+
+.header {
+  text-align: center;
+  padding: 10px 0 6px;
+  border-bottom: 1px solid var(--tile-border);
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 4px;
+}
+
+.board-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.board {
+  display: grid;
+  grid-template-rows: repeat(6, 1fr);
+  gap: 5px;
+  padding: 10px;
+  aspect-ratio: 5 / 6;
+  height: 100%;
+  max-height: 360px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 2px solid var(--tile-border);
+  border-radius: 4px;
+  aspect-ratio: 1 / 1;
+  transition: transform 0.1s ease;
+  line-height: 1;
+}
+
+.tile.filled {
+  border-color: var(--tile-filled-border);
+  animation: pop 0.1s ease;
+}
+
+.tile.reveal {
+  animation: flip 0.5s ease forwards;
+}
+
+.tile.correct { background: var(--correct); border-color: var(--correct); color: #fff; }
+.tile.present { background: var(--present); border-color: var(--present); color: #fff; }
+.tile.absent  { background: var(--absent);  border-color: var(--absent);  color: #fff; }
+
+.row.shake { animation: shake 0.5s; }
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@keyframes flip {
+  0% { transform: rotateX(0); }
+  50% { transform: rotateX(90deg); }
+  100% { transform: rotateX(0); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+.message {
+  text-align: center;
+  min-height: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 4px;
+}
+
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 4px 10px;
+}
+
+.kb-row {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+}
+
+.key {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  border: none;
+  border-radius: 5px;
+  background: var(--key-bg);
+  color: var(--key-text);
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.key:active { opacity: 0.7; }
+
+.key.wide {
+  flex: 1.5;
+  font-size: 18px;
+}
+
+.key.correct { background: var(--correct); color: #fff; }
+.key.present { background: var(--present); color: #fff; }
+.key.absent  { background: var(--absent);  color: #fff; }
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.overlay.hidden { display: none; }
+
+.modal {
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 24px;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-title { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+.modal-text { font-size: 16px; line-height: 1.5; margin-bottom: 18px; }
+.modal-text b { font-size: 20px; letter-spacing: 2px; }
+
+.modal-hint { margin-top: 14px; font-size: 13px; color: var(--hint); }

@@ -257,14 +257,14 @@
   // --- Реклама Adsgram и новая партия ----------------------------------------
 
   // Подставьте ID рекламного блока из личного кабинета Adsgram.
-  const ADSGRAM_BLOCK_ID = "35842";
+  const ADSGRAM_BLOCK_ID = "35849";
 
   let adController = null;
   function getAdController() {
     if (adController) return adController;
     if (window.Adsgram && typeof window.Adsgram.init === "function") {
       try {
-        adController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
+        adController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID, debug: true });
       } catch (e) {
         adController = null;
       }

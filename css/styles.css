@@ -206,4 +206,29 @@ body {
 .modal-text { font-size: 16px; line-height: 1.5; margin-bottom: 18px; }
 .modal-text b { font-size: 20px; letter-spacing: 2px; }
 
+.modal-btn {
+  display: block;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: var(--correct);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 13px 16px;
+  cursor: pointer;
+}
+
+.modal-btn:active { opacity: 0.8; }
+.modal-btn[disabled] { opacity: 0.5; cursor: default; }
+
 .modal-hint { margin-top: 14px; font-size: 13px; color: var(--hint); }
+
+.ad-link {
+  color: var(--correct);
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ad-link.loading { opacity: 0.5; cursor: default; }

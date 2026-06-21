@@ -15,64 +15,77 @@
   const params = new URLSearchParams(window.location.search);
   const DEBUG = params.has("debug");
 
-  // --- Слово дня -------------------------------------------------------------
-
-  function getDayNumber() {
-    const now = new Date();
-    const localMidnight = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-    const epoch = Date.UTC(2024, 0, 1); // отсчёт дней с 1 января 2024
-    return Math.floor((localMidnight - epoch) / 86400000);
-  }
+  // --- Выбор слова -----------------------------------------------------------
 
   function normalize(w) {
     // Ё трактуем как Е, чтобы не путать игрока.
     return w.toLowerCase().replace(/ё/g, "е");
   }
 
-  const dayNumber = getDayNumber();
-  // ?day=N — принудительно открыть слово конкретного дня (для отладки).
-  const forcedDay = params.has("day") ? parseInt(params.get("day"), 10) : null;
-  const effectiveDay = Number.isFinite(forcedDay) ? forcedDay : dayNumber;
-
-  const wordIndex = ((effectiveDay % WORDS.length) + WORDS.length) % WORDS.length;
-  const ANSWER = normalize(WORDS[wordIndex]);
-
-  if (DEBUG) {
-    console.log("[Вордли] день:", effectiveDay, "слово:", ANSWER);
-  }
-
-  // --- Состояние -------------------------------------------------------------
-
   const STORAGE_KEY = "wordle_ru_v1";
 
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return null;
-      const data = JSON.parse(raw);
-      if (data.day !== effectiveDay) return null; // другой день — начинаем заново
-      return data;
+      return raw ? JSON.parse(raw) : null;
     } catch (e) {
       return null;
     }
+  }
+
+  function randomWord() {
+    return normalize(WORDS[Math.floor(Math.random() * WORDS.length)]);
+  }
+
+  function todayKey() {
+    // Локальная дата YYYY-MM-DD — ключ «одна игра в день».
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  const saved = loadState();
+  const today = todayKey();
+  // ?word=N — принудительно открыть слово с конкретным индексом (для отладки).
+  const forcedWord = params.has("word") ? parseInt(params.get("word"), 10) : null;
+
+  let ANSWER;
+  let resumed = false;
+  if (Number.isFinite(forcedWord)) {
+    const idx = ((forcedWord % WORDS.length) + WORDS.length) % WORDS.length;
+    ANSWER = normalize(WORDS[idx]);
+  } else if (saved && saved.day === today && saved.answer) {
+    // Сегодня уже есть игра — продолжаем её (даже завершённую: новое слово только завтра).
+    ANSWER = saved.answer;
+    resumed = true;
+  } else {
+    // Первый запуск за день — загадываем новое случайное слово.
+    ANSWER = randomWord();
+  }
+
+  if (DEBUG) {
+    console.log("[Вордли] день:", today, "слово:", ANSWER);
   }
 
   function saveState() {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ day: effectiveDay, guesses: state.guesses, status: state.status })
+        JSON.stringify({ day: today, answer: ANSWER, guesses: state.guesses, status: state.status })
       );
     } catch (e) {
       /* localStorage может быть недоступен — играем без сохранения */
     }
   }
 
-  const saved = loadState();
+  // --- Состояние -------------------------------------------------------------
+
   const state = {
-    guesses: saved ? saved.guesses : [], // массив завершённых попыток (строки)
+    guesses: resumed ? saved.guesses : [], // массив завершённых попыток (строки)
     current: "", // текущий набираемый ввод
-    status: saved ? saved.status : "playing", // "playing" | "won" | "lost"
+    status: resumed ? saved.status : "playing", // "playing" | "won" | "lost"
   };
 
   // --- DOM -------------------------------------------------------------------
@@ -87,6 +100,7 @@
 
   function buildBoard() {
     boardEl.innerHTML = "";
+    tiles.length = 0;
     for (let r = 0; r < ROWS; r++) {
       const rowEl = document.createElement("div");
       rowEl.className = "row";
@@ -104,6 +118,7 @@
 
   function buildKeyboard() {
     keyboardEl.innerHTML = "";
+    for (const k in keyEls) delete keyEls[k];
     for (const row of KEYBOARD_ROWS) {
       const rowEl = document.createElement("div");
       rowEl.className = "kb-row";
@@ -238,6 +253,67 @@
       tg.HapticFeedback.notificationOccurred(status === "won" ? "success" : "error");
     }
   }
+
+  // --- Реклама Adsgram и новая партия ----------------------------------------
+
+  // Подставьте ID рекламного блока из личного кабинета Adsgram.
+  const ADSGRAM_BLOCK_ID = "35842";
+
+  let adController = null;
+  function getAdController() {
+    if (adController) return adController;
+    if (window.Adsgram && typeof window.Adsgram.init === "function") {
+      try {
+        adController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
+      } catch (e) {
+        adController = null;
+      }
+    }
+    return adController;
+  }
+
+  // Сброс доски и загадывание нового случайного слова (внеочередная партия).
+  function startNewWord() {
+    ANSWER = randomWord();
+    state.guesses = [];
+    state.current = "";
+    state.status = "playing";
+    saveState();
+    buildBoard();
+    buildKeyboard();
+    renderCurrent();
+    overlayEl.classList.add("hidden");
+    if (DEBUG) console.log("[Вордли] новое слово после рекламы:", ANSWER);
+  }
+
+  let adLoading = false;
+  function showAdThenNewWord() {
+    if (adLoading) return;
+    const ctrl = getAdController();
+    if (!ctrl) {
+      flash("Реклама недоступна");
+      return;
+    }
+    adLoading = true;
+    adNextBtn.classList.add("loading");
+    ctrl
+      .show()
+      .then(() => {
+        // Реклама просмотрена полностью — открываем новую попытку.
+        startNewWord();
+      })
+      .catch(() => {
+        // Реклама закрыта раньше времени или ошибка — попытку не даём.
+        flash("Реклама не была просмотрена");
+      })
+      .finally(() => {
+        adLoading = false;
+        adNextBtn.classList.remove("loading");
+      });
+  }
+
+  const adNextBtn = document.getElementById("ad-next");
+  adNextBtn.addEventListener("click", showAdThenNewWord);
 
   // --- Ввод ------------------------------------------------------------------
 
